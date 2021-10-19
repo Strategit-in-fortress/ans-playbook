@@ -1,6 +1,6 @@
 # PostgreSQL vars for Debian based distributions
 
-#Names
+# Names
 postgresql_service_name: "postgresql@{{ postgresql_version }}-{{ postgresql_cluster_name }}"
 
 # Location of postgres files
