@@ -1,0 +1,41 @@
+---
+- name: check for signal file
+  stat: path="{{ postgresql_cluster_directory }}/standby.signal"
+  register: slave
+
+- name: Stop PostgreSQL server
+  when: inventory_hostname in groups['pgslave'] and slave.stat.exists == False
+  systemd:
+    name: "{{ postgresql_service_name }}"
+    state: stopped
+
+- name: Move cluster backup
+  when: inventory_hostname in groups['pgslave'] and slave.stat.exists == False
+  shell: mv main main-backup
+  args:
+    chdir: "/var/lib/postgresql/{{ postgresql_version }}/"
+
+- name: Create cluster directory
+  when: inventory_hostname in groups['pgslave'] and slave.stat.exists == False
+  file:
+    path: "{{ postgresql_cluster_directory }}"
+    mode: 0700
+    owner: postgres
+    group: postgres
+    state: directory
+
+- name: Backup initial data from master
+  when: inventory_hostname in groups['pgslave'] and slave.stat.exists == False
+  shell: su - postgres -c "PGPASSWORD={{ replica_password }} pg_basebackup -w -h {{ hostvars[groups['pgmaster'][0]]['ansible_default_ipv4']['address'] }} -U replica -D {{ postgresql_cluster_directory }} -P -R -X stream -C -S pgstandby1"
+
+- name: Update postgresql.conf
+  when: inventory_hostname in groups['pgslave'] and slave.stat.exists == False
+  lineinfile:
+    path: "{{ postgresql_conf_file }}"
+    regexp: "#hot_standby = off"
+    line: "hot_standby = on"
+
+- name: Start PostgreSQL server
+  systemd:
+    name: "{{ postgresql_service_name }}"
+    state: started

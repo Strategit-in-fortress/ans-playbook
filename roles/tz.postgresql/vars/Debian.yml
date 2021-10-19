@@ -1,0 +1,15 @@
+# PostgreSQL vars for Debian based distributions
+
+#Names
+postgresql_service_name: "postgresql@{{ postgresql_version }}-{{ postgresql_cluster_name }}"
+
+# Location of postgres files
+postgresql_conf_directory: "/etc/postgresql/{{ postgresql_version }}/{{ postgresql_cluster_name }}"
+postgresql_cluster_directory: "/var/lib/postgresql/{{ postgresql_version }}/{{ postgresql_cluster_name }}"
+postgresql_hba_file: "{{ postgresql_conf_directory }}/pg_hba.conf"
+postgresql_conf_file: "{{ postgresql_conf_directory }}/postgresql.conf"
+
+# APT settings
+postgresql_apt_key_id: "ACCC4CF8"
+postgresql_apt_key_url: "https://www.postgresql.org/media/keys/ACCC4CF8.asc"
+postgresql_apt_repository: "deb http://apt.postgresql.org/pub/repos/apt/ {{ ansible_distribution_release }}-pgdg main {{ postgresql_version }}"

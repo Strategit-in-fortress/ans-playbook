@@ -1,0 +1,4 @@
+- hosts: pgcluster
+  roles:
+    - role: tz.postgresql
+      become: yes

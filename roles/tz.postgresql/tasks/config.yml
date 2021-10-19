@@ -1,0 +1,36 @@
+---
+- name: Update postgresql.conf
+  lineinfile:
+    path: "{{ postgresql_conf_file }}"
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+  - { regexp: "#listen_addresses = 'localhost'", line: "listen_addresses = 'localhost,{{ ansible_default_ipv4.address }}'" }
+
+- name: Update pg_hba.conf
+  blockinfile:
+    path: "{{ postgresql_hba_file }}"
+    insertafter: "#host replication postgres ::1/128 ident"
+    block: |
+      # Localhost
+      host replication replica 127.0.0.1/32 md5
+      # PostgreSQL Master IP address
+      host replication replica {{ hostvars[groups['pgmaster'][0]]['ansible_default_ipv4']['address'] }}/32 md5
+      # PostgreSQL Slave IP address
+      host replication replica {{ hostvars[groups['pgslave'][0]]['ansible_default_ipv4']['address'] }}/32 md5
+
+  notify:
+  - Restart postgresql
+
+- name: Force all notified handlers to run at this point, not waiting for normal sync points
+  meta: flush_handlers
+
+- name: Checking if replication user exist
+  changed_when: false
+  shell: sudo -u postgres psql -tc "SELECT 1 FROM pg_user WHERE usename = 'replica'" | grep -q 1
+  register: result_user_exist
+  failed_when: result_user_exist.rc != 1 and result_user_exist.rc !=0
+
+- name: Adding user if not exist
+  when: result_user_exist.rc == 1
+  shell: sudo -u postgres psql -c "CREATE USER replica REPLICATION LOGIN ENCRYPTED PASSWORD '{{ replica_password }}'"
