@@ -1,5 +1,5 @@
 ---
-- name: check for signal file
+- name: Check for signal file
   stat: path="{{ postgresql_cluster_directory }}/standby.signal"
   register: slave
 
